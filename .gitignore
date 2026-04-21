@@ -1,2 +1,4 @@
 /.venv/
 /.mypy_cache/
+/EBS_BLOCK_STORAGE
+/AWS_CLI_USER_PROFILE

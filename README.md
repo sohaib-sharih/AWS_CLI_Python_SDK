@@ -38,7 +38,8 @@ $ python -m pip install boto3
 2. [Python SDK installation guide](https://github.com/boto/boto3)
 3. [Python Libraries and list of SDKs](https://builder.aws.com/content/2zYQkMbmrsxHPtT89s3teyKJh79/aws-tools-and-resources-python)
 4. [Python SDK doc](https://docs.aws.amazon.com/boto3/latest/guide/quickstart.html)
-5. Example Code
+5. [Python SDK Guide Docs Aws](https://docs.aws.amazon.com/code-library/latest/ug/python_3_s3_code_examples.html#get_started)
+6. Example Code
 
 ```
 main.py
@@ -204,6 +205,18 @@ print(boto3.client('s3').meta.region_name)
 1. If you have the [AWS CLI](http://aws.amazon.com/cli/) installed, then you can use the **aws configure** command to configure your credentials file:
 ```
 aws configure
+
+To get the currently logged in user credentials:
+
+aws sts get-caller-identity
+
+OUPUT:
+
+{                              
+    "UserId": "154sdcsd6837",
+    "Account": "154sdcs6837",
+}
+
 ```
 
 2. Alternatively, you can create the credentials file yourself. By default, its location is `~/.aws/credentials`. At a minimum, the credentials file should specify the access key and secret access key. In this example, the key and secret key for the account are specified in the `default` profile:
@@ -214,11 +227,127 @@ aws_access_key_id = YOUR_ACCESS_KEY
 aws_secret_access_key = YOUR_SECRET_KEY
 ```
 
-3. 
+#### How do we check the Currently logged in AWS CLI Profile name?
+
+1. There is no way we can do that now, because the new AWS CLI is **stateless.** It does not have a way to store login credentials or keep track of user profile name.
+2. But you can switch between profiles, as long as you had configured those new ***profile names before.***
+3. You can simply switch while you are already logged in by
+```
+$env:AWS_PROFILE = "soby_test"
+
+Then check
+
+aws configure list
+
+OUTPUT:
+
+PS D:\AWS_Cloud\EBS_BLOCK_STORAGE> aws configure list          
+NAME       : VALUE                    : TYPE             : LOCATION
+profile    : soby_test                : env              : ['AWS_PROFILE', 'AWS_DEFAULT_PROFILE']
+access_key : ****************427Y     : login            : 
+secret_key : ****************9WrR     : login            : 
+region     : us-east-1                : config-file      : ~/.aws/config
+
+```
+4. If the profile name you save in the ENV Variable does not exist or was not configured before, then it returns the following output:
+
+```
+PS D:\AWS_Cloud\EBS_BLOCK_STORAGE> aws configure list            
+NAME       : VALUE                    : TYPE             : LOCATION
+profile    : soby_test_2              : env              : ['AWS_PROFILE', 'AWS_DEFAULT_PROFILE']
+
+aws: [ERROR]: The config profile (soby_test_2) could not be found
+
+```
+
+5. **Permanent Env Variable (AWS_PROFILE)**: This is not a good practice, although you can do it in several ways explained below. But this can make you accidentally create resources using the wrong credentials / user associated with that Profile configuration.
+
+6. ***The Impact of a Permanent Env Variable***
+
+- **Default Behavior**: Once you set `AWS_PROFILE` to `soby_test` permanently, every AWS CLI command and Boto3 script will automatically use that profile.
+- **Simple Login**: You will be able to run `aws login` without the `--profile` flag because the CLI will see your environment variable and assume you mean `soby_test`.
+- **Switching Issues**: To use a different profile (like `dev`), you have two choices:
+    - **Override**: Use the `--profile dev` flag on a specific command. This **overrides** the environment variable for that one command only.
+    - **Reset**: You would have to change the environment variable again to switch your "default" globally.
+
+**Recommendation:** Instead of a permanent Windows setting, keep your environment variable **temporary** (using `$env:AWS_PROFILE = "name"`). This forces you to be intentional about which "hat" you are wearing before you run a command.
+
+### SECURELY LOGIN: Login to AWS CLI without using Access Keys of Root User
+
+### Assign a ROLE to an IAM USER.
+
+1. Set up a new profile using the following command:
+
+```
+aws configure --profile sohaib_base
+
+It will prompt you to enter KEYS and HASH KEYS
+
+[sohaib_base]
+aws_access_key_id = AKIA... (The new IAM User keys)
+aws_secret_access_key = ...
+
+Press Enter to the next 2-3 questions as NONE
+
+GENERATE KEYS:
+
+1. Go to USERS
+2. Select the user you create
+3. Click on GENERATE KEYS
+4. Download the csv, or copy the key + hash key.
+```
+
+2. Create a POLICY from AWS Console
+3. Create a User from AWS Console
+4. Create a ROLE and attached a policy to it.
+5. Assign the ROLE to the newly created user.
+6. Open the ROLE and retreive/copy the ARN ID and place it in the **config file** inside the /user/.aws folder, as shown below
+
+```
+[profile sohaib_sharih_admin_role]
+role_arn = arn:aws:iam::154292416837:role/aws_cli
+source_profile = sohaib_base
+
+-------------
+
+Verify the currently logged in user credentials:
+
+aws sts get-caller-identity
+
+OUTPUT:
+{                                                                                                                       
+    "UserId": "AROASdfgOFC2asdasdKW75:botocore-session-17767dfg54",
+    "Account": "154sdcsd37",
+    "Arn": "arn:aws:sts::15dfg416837:assumed-role/aws_cli/botocore-session-1776782554"
+}
+
+--------------
+If you region returns NONE, then you can set it up through your CLI Command
+
+aws configure set region us-east-1
+
+----------------------
+
+```
+
+#### Conclusion and Learnings
+
+1. Your roles and IAM policies are applicable for all regions.
+2. You need to define regions when you are using an SDK to talk to AWS and to Create Resources.
+3. **Switching Profiles:** Simply reassign a new value to the environment variable
+```
+$env:AWS_PROFILE = "sohaib_sharih" (example)
+```
+
+4. To increase the duration of a ROLE, click on the role, then EDIT button to change the DURATION from 1 hour default to 12 hours for example. This means that the ROLE you assumed will have its tokens expired, and you will have to logout, then relogin or restart your terminal.
+5. You don't have to login to assume a role, you have to be an EXISTING USER that just ASSUMES a role with specified policy and permissions.
+
+
 #### Useful links
 
 1. [AWS Developer Tools](https://builder.aws.com/build/tools)
 2. [AWS Documentation](https://docs.aws.amazon.com/)
+3. [Python SDK CreatingBuckets Doc](https://docs.aws.amazon.com/code-library/latest/ug/python_3_s3_code_examples.html#get_started)
 
 
 #### Useful commands
